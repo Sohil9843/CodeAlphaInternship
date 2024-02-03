@@ -1,66 +1,66 @@
-const searchbox = document.querySelector('.searchBox');
-const searchbtn = document.querySelector('.searchBtn');
-const recipecontainer = document.querySelector('.recipe-container');
-const recipeDetailContent = document.querySelector('.recipeDetailContent');
-const closebtn = document.querySelector('.recipe-close-btn');
-const section = document.getElementsByTagName('section');
-
-const fetchrecp = async (quarry) =>{
-    recipecontainer.innerHTML="Fetching Your Dishes....";
-    const data  =await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${quarry}`);
-    const respose = await data.json();
-    // console.log(respose.meals[0]);
-    recipecontainer.innerHTML="";
-    respose.meals.forEach(meal => {
-        // console.log(meal);
-        const recipeDiv = document.createElement('div');
-        recipeDiv.classList.add('recipeStyle');
-        recipeDiv.innerHTML =`
-        <img src="${meal.strMealThumb}">
-        <h3>${meal.strMeal}</h3>
-        <p><span>${meal.strArea}</span> Dish</p>
-        <p><span>${meal.strCategory}<span> Categories</p>
-        `
-        const button = document.createElement('button');
-        button.textContent = "View recipe";
-        recipeDiv.appendChild(button)
-        recipecontainer.appendChild(recipeDiv);
-
-        // add Event listner for recipe detail button.
-        button.addEventListener('click',()=>{
-            displayDetails(meal);
-        });
-    });
-}
-searchbtn.addEventListener('click',(e)=>{
-    e.preventDefault();
-    const uinput = searchbox.value.trim();
-    fetchrecp(uinput);
-    // console.log('btn clicked');
-});
-// fuction to fetch ingredients and measurement.
-const fetchIngredients = (meal) =>{
-    let ingredientslist ="";
-    for(let i = 1; i<=20; i++){
-        const ingredient =meal[`strIngredients${i}`];
-        if(ingredient){
-            const measure = meal[`strMeasure${i}`];
-            ingredientslist +=  `<li>${measure} ${ingredient}</li>`;
-        }
-        else{
-            break;
-        }
+function submitIssue(e) {
+    const getInputValue = id => document.getElementById(id).value;
+    const description = getInputValue('issueDescription');
+    const severity = getInputValue('issueSeverity');
+    const assignedTo = getInputValue('issueAssignedTo');
+    const id = Math.floor(Math.random() * 100000000) + '';
+    const status = 'Open';
+  
+    if ((description.length == 0) || (assignedTo.length == 0)) {
+      alert("Please fill all fields with required data.");
+      document.getElementById('add-issue').setAttribute("data-toggle", "modal");
+      document.getElementById('add-issue').setAttribute("data-target", "#emptyField")
     }
-    return ingredientslist;
-}
-
-const displayDetails = (meal) =>{
-    recipeDetailContent.innerHTML = `
-        <h2>${meal.strMeal}</h2>
-        <h3>Ingredients:</h3>
-        <ul>${fetchIngredients}</ul>
-    `
-    recipeDetailContent.parentElement.style.display = "block";
-}
-
-
+    else {
+      document.getElementById('add-issue').removeAttribute("data-toggle", "modal");
+      document.getElementById('add-issue').removeAttribute("data-target", "#emptyField")
+      const issue = { id, description, severity, assignedTo, status };
+      let issues = [];
+      if (localStorage.getItem('issues')) {
+        issues = JSON.parse(localStorage.getItem('issues'));
+      }
+      issues.push(issue);
+      localStorage.setItem('issues', JSON.stringify(issues));
+  
+  
+      fetchIssues();
+    }
+  }
+  
+  const closeIssue = id => {
+    const issues = JSON.parse(localStorage.getItem('issues'));
+    const currentIssue = issues.find(issue => issue.id == id);
+    currentIssue.status = 'Closed';
+    currentIssue.description = `<strike>${currentIssue.description}</strike>`
+    localStorage.setItem('issues', JSON.stringify(issues));
+    fetchIssues();
+  }
+  
+  const deleteIssue = id => {
+    const issues = JSON.parse(localStorage.getItem('issues'));
+    const remainingIssues = issues.filter(issue => ((issue.id) != id))
+    localStorage.removeItem('issues');
+    localStorage.setItem('issues', JSON.stringify(remainingIssues));
+    fetchIssues();
+  }
+  const fetchIssues = () => {
+  
+    const issues = JSON.parse(localStorage.getItem('issues'));
+    const issuesList = document.getElementById('issuesList');
+    issuesList.innerHTML = '';
+  
+    for (var i = 0; i < issues.length; i++) {
+      const { id, description, severity, assignedTo, status } = issues[i];
+  
+      issuesList.innerHTML += `<div class="well">
+                                <h6>Issue ID: ${id} </h6>
+                                <p><span class="label label-info"> ${status} </span></p>
+                                <h3> ${description} </h3>
+                                <p><span class="glyphicon glyphicon-time"></span> ${severity}</p>
+                                <p><span class="glyphicon glyphicon-user"></span> ${assignedTo}</p>
+                                <button onclick="closeIssue(${id})" class="btn btn-warning">Close</button>
+                                <button onclick="deleteIssue(${id})" class="btn btn-danger">Delete</button>
+                                </div>`;
+    }
+  }
+  fetchIssues();
