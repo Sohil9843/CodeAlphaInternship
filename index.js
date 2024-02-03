@@ -1,66 +1,51 @@
-function submitIssue(e) {
-    const getInputValue = id => document.getElementById(id).value;
-    const description = getInputValue('issueDescription');
-    const severity = getInputValue('issueSeverity');
-    const assignedTo = getInputValue('issueAssignedTo');
-    const id = Math.floor(Math.random() * 100000000) + '';
-    const status = 'Open';
-  
-    if ((description.length == 0) || (assignedTo.length == 0)) {
-      alert("Please fill all fields with required data.");
-      document.getElementById('add-issue').setAttribute("data-toggle", "modal");
-      document.getElementById('add-issue').setAttribute("data-target", "#emptyField")
+const chatInput = document.querySelector(".chat-input textarea");
+const sendchatbtn = document.querySelector(".chat-input i");
+const chatbox = document.querySelector(".chatbox");
+let userMesg;
+const API_KEY ="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";
+const createChatLi = (msg, className) =>{
+    const chatLi = document.createElement("li");
+    chatLi.classList.add("chat", className);
+    let chatcontent = className==="outgoing" ?`<p>${msg}</p>`:`<i class="fa-solid fa-robot"></i><p>${msg}</p>`
+    chatLi.innerHTML = chatcontent;
+    return chatLi;
+}
+
+const generateResponse =(incomingChatLi)=>{
+
+    const API_url = "https://api.openai.com/v1/chat/completions";
+    const msgElement = incomingChatLi.querySelector("p");
+    const requestOptions = {
+        method: "POST",
+        headers: {
+            "content-type":"application/json",
+            "Authorization":`Bearer${API_KEY}`
+        },
+        body: JSON.stringify({
+            model:"gpt-3.5-turbo",
+            message:[{role:"user",content:userMesg}]
+        })
+
     }
-    else {
-      document.getElementById('add-issue').removeAttribute("data-toggle", "modal");
-      document.getElementById('add-issue').removeAttribute("data-target", "#emptyField")
-      const issue = { id, description, severity, assignedTo, status };
-      let issues = [];
-      if (localStorage.getItem('issues')) {
-        issues = JSON.parse(localStorage.getItem('issues'));
-      }
-      issues.push(issue);
-      localStorage.setItem('issues', JSON.stringify(issues));
-  
-  
-      fetchIssues();
-    }
-  }
-  
-  const closeIssue = id => {
-    const issues = JSON.parse(localStorage.getItem('issues'));
-    const currentIssue = issues.find(issue => issue.id == id);
-    currentIssue.status = 'Closed';
-    currentIssue.description = `<strike>${currentIssue.description}</strike>`
-    localStorage.setItem('issues', JSON.stringify(issues));
-    fetchIssues();
-  }
-  
-  const deleteIssue = id => {
-    const issues = JSON.parse(localStorage.getItem('issues'));
-    const remainingIssues = issues.filter(issue => ((issue.id) != id))
-    localStorage.removeItem('issues');
-    localStorage.setItem('issues', JSON.stringify(remainingIssues));
-    fetchIssues();
-  }
-  const fetchIssues = () => {
-  
-    const issues = JSON.parse(localStorage.getItem('issues'));
-    const issuesList = document.getElementById('issuesList');
-    issuesList.innerHTML = '';
-  
-    for (var i = 0; i < issues.length; i++) {
-      const { id, description, severity, assignedTo, status } = issues[i];
-  
-      issuesList.innerHTML += `<div class="well">
-                                <h6>Issue ID: ${id} </h6>
-                                <p><span class="label label-info"> ${status} </span></p>
-                                <h3> ${description} </h3>
-                                <p><span class="glyphicon glyphicon-time"></span> ${severity}</p>
-                                <p><span class="glyphicon glyphicon-user"></span> ${assignedTo}</p>
-                                <button onclick="closeIssue(${id})" class="btn btn-warning">Close</button>
-                                <button onclick="deleteIssue(${id})" class="btn btn-danger">Delete</button>
-                                </div>`;
-    }
-  }
-  fetchIssues();
+    fetch(API_url,requestOptions).then(res =>res.json()).then(data =>{
+        msgElement.textContent= data.choices[0].message.content;
+        // console.log(data)
+    }).catch((error)=>{
+        msgElement.textContent= "OOps! Something went wrong. Please try again.";
+    }).finally(()=>chatbox.scrollTo(0, chatbox.scrollHeight))
+}
+const handleChat = () =>{
+    userMesg = chatInput.value.trim();
+    if(!userMesg) return;
+
+    createChatLi(userMesg , "outgoing");
+    chatbox.appendChild(createChatLi(userMesg, "outgoing"));
+    chatbox.scrollTo(0, chatbox.scrollHeight)
+
+    setTimeout(() =>{
+        const incomingChatLi = createChatLi("Thinking.....", "incoming")
+        chatbox.appendChild(incomingChatLi);
+        generateResponse(incomingChatLi);
+    },600);
+}
+sendchatbtn.addEventListener("click", handleChat);
