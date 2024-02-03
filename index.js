@@ -1,51 +1,66 @@
-const chatInput = document.querySelector(".chat-input textarea");
-const sendchatbtn = document.querySelector(".chat-input i");
-const chatbox = document.querySelector(".chatbox");
-let userMesg;
-const API_KEY ="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";
-const createChatLi = (msg, className) =>{
-    const chatLi = document.createElement("li");
-    chatLi.classList.add("chat", className);
-    let chatcontent = className==="outgoing" ?`<p>${msg}</p>`:`<i class="fa-solid fa-robot"></i><p>${msg}</p>`
-    chatLi.innerHTML = chatcontent;
-    return chatLi;
+const searchbox = document.querySelector('.searchBox');
+const searchbtn = document.querySelector('.searchBtn');
+const recipecontainer = document.querySelector('.recipe-container');
+const recipeDetailContent = document.querySelector('.recipeDetailContent');
+const closebtn = document.querySelector('.recipe-close-btn');
+const section = document.getElementsByTagName('section');
+
+const fetchrecp = async (quarry) =>{
+    recipecontainer.innerHTML="Fetching Your Dishes....";
+    const data  =await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${quarry}`);
+    const respose = await data.json();
+    // console.log(respose.meals[0]);
+    recipecontainer.innerHTML="";
+    respose.meals.forEach(meal => {
+        // console.log(meal);
+        const recipeDiv = document.createElement('div');
+        recipeDiv.classList.add('recipeStyle');
+        recipeDiv.innerHTML =`
+        <img src="${meal.strMealThumb}">
+        <h3>${meal.strMeal}</h3>
+        <p><span>${meal.strArea}</span> Dish</p>
+        <p><span>${meal.strCategory}<span> Categories</p>
+        `
+        const button = document.createElement('button');
+        button.textContent = "View recipe";
+        recipeDiv.appendChild(button)
+        recipecontainer.appendChild(recipeDiv);
+
+        // add Event listner for recipe detail button.
+        button.addEventListener('click',()=>{
+            displayDetails(meal);
+        });
+    });
 }
-
-const generateResponse =(incomingChatLi)=>{
-
-    const API_url = "https://api.openai.com/v1/chat/completions";
-    const msgElement = incomingChatLi.querySelector("p");
-    const requestOptions = {
-        method: "POST",
-        headers: {
-            "content-type":"application/json",
-            "Authorization":`Bearer${API_KEY}`
-        },
-        body: JSON.stringify({
-            model:"gpt-3.5-turbo",
-            message:[{role:"user",content:userMesg}]
-        })
-
+searchbtn.addEventListener('click',(e)=>{
+    e.preventDefault();
+    const uinput = searchbox.value.trim();
+    fetchrecp(uinput);
+    // console.log('btn clicked');
+});
+// fuction to fetch ingredients and measurement.
+const fetchIngredients = (meal) =>{
+    let ingredientslist ="";
+    for(let i = 1; i<=20; i++){
+        const ingredient =meal[`strIngredients${i}`];
+        if(ingredient){
+            const measure = meal[`strMeasure${i}`];
+            ingredientslist +=  `<li>${measure} ${ingredient}</li>`;
+        }
+        else{
+            break;
+        }
     }
-    fetch(API_url,requestOptions).then(res =>res.json()).then(data =>{
-        msgElement.textContent= data.choices[0].message.content;
-        // console.log(data)
-    }).catch((error)=>{
-        msgElement.textContent= "OOps! Something went wrong. Please try again.";
-    }).finally(()=>chatbox.scrollTo(0, chatbox.scrollHeight))
+    return ingredientslist;
 }
-const handleChat = () =>{
-    userMesg = chatInput.value.trim();
-    if(!userMesg) return;
 
-    createChatLi(userMesg , "outgoing");
-    chatbox.appendChild(createChatLi(userMesg, "outgoing"));
-    chatbox.scrollTo(0, chatbox.scrollHeight)
-
-    setTimeout(() =>{
-        const incomingChatLi = createChatLi("Thinking.....", "incoming")
-        chatbox.appendChild(incomingChatLi);
-        generateResponse(incomingChatLi);
-    },600);
+const displayDetails = (meal) =>{
+    recipeDetailContent.innerHTML = `
+        <h2>${meal.strMeal}</h2>
+        <h3>Ingredients:</h3>
+        <ul>${fetchIngredients}</ul>
+    `
+    recipeDetailContent.parentElement.style.display = "block";
 }
-sendchatbtn.addEventListener("click", handleChat);
+
+
